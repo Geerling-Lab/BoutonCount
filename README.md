@@ -2,7 +2,9 @@
 This code is designed to both run and retrain BoutonCount
 
 Running:
+
 Tested using Python 3.8.11, numpy 1.20.3, scikit-image 0.18.1, pillow 8.3.1, keras 2.4.3, tensorflow 2.3.1
+
 Tested using 20x EFI Images from Olympus Slide Scanner as outlined in paper
 
 This program uses a two-step method to detect synaptic boutons on histological images
