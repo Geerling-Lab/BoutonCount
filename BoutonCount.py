@@ -8,7 +8,7 @@ from Constants import SIZE, RADIUS
 from tensorflow.keras.models import model_from_json
 
 """
-Tested using Python 3.6.8, numpy 1.16.4, scipy 1.2.1, pillow 6.0.0, keras 2.2.4, tensorflow 1.12.0
+Tested using Python 3.8.11, numpy 1.20.3, scikit-image 0.18.1, pillow 8.3.1, keras 2.4.3, tensorflow 2.3.1
 Tested using 20x EFI Images from Olympus Slide Scanner as outlined in paper
 
 This program uses a two-step method to detect synaptic boutons on histological images
@@ -288,9 +288,9 @@ def count_brain(brain_directory, model, oft):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This program uses the pretrained NN to search for cells or boutons")
-    parser.add_argument("-d", "--directory", type=str, help="Brain level directory")
+    parser.add_argument("-b", "--brain", type=str, help="Brain level directory")
     parser.add_argument("-o", "--order", type=str, help="Order file for multiple brains")
-    parser.add_argument("-f", "--folder", type=str, help="File for one section from one brain")
+    parser.add_argument("-e", "--section", type=str, help="File for one section from one brain")
     parser.add_argument("-p", "--png", action="store_true", help="Output png file Boutons.png")
     parser.add_argument("-s", "--svg", action="store_true", help="Output svg file Boutons.svg")
     parser.add_argument("-c", "--csv", action="store_true", help="Output csv file Boutons.csv")
