@@ -1,0 +1,2 @@
+SIZE = 24
+RADIUS = SIZE // 2
