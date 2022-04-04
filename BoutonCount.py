@@ -151,9 +151,9 @@ class CreatePNG():
 
     def output(self):
         image_array = np.zeros((self.arr.shape[0], self.arr.shape[1], 4), dtype=np.uint8)
-        image_array[:, :, 0] = 255  # Convert to image array
-        image_array[:, :, 1] = 0
-        image_array[:, :, 2] = 0
+        image_array[:, :, 0] = color[0]  # Convert to image array
+        image_array[:, :, 1] = color[1]
+        image_array[:, :, 2] = color[2]
         image_array[:, :, 3] = self.arr * 255
         image = Image.fromarray(image_array, 'RGBA')
         image = image.resize((int(self.arr.shape[1] * self.downscale), int(self.arr.shape[0] * self.downscale)),
@@ -192,14 +192,18 @@ def generate_border_and_mask(mask_file_path):
 
 def count_section(directory, model, oft):
     input_mask = os.path.join(directory, "Mask.png")
-    output_image = os.path.join(directory, "Image.png")
+    output_image = os.path.join(directory, "Image")
     output_svg = os.path.join(directory, "Boutons.svg")
     output_png = os.path.join(directory, "Boutons.png")
-    output_csv = os.path.join(directory, "BoutonCount_New.csv")
+    output_csv = os.path.join(directory, "BoutonCount.csv")
     arr = None
     start_time = time.time()
-    if os.path.exists(output_image):
-        arr = file_to_array(output_image).astype(np.float32)
+    for extension in ["png", "jpg", "tif"]:
+        image = "%s.%s" % (output_image, extension)
+        if os.path.exists(image):
+            arr = file_to_array(image).astype(np.float32)
+            arr = (arr - arr.min()) / (arr.max() - arr.min())
+            arr = (arr * 255).astype(int)
     else:
         """
         Loads images exported by either CellSens or VS-ASW into memory
@@ -229,11 +233,14 @@ def count_section(directory, model, oft):
         This makes it easier to access in the future
         """
         print("Working on %s" % directory)
+        assert arr is not None
         arr = (arr - arr.min()) / (arr.max() - arr.min())
-        im = Image.fromarray(arr * 255).convert("L")
-        im.save(output_image)
+        arr = (arr * 255).astype(int)
+        im = Image.fromarray(arr).convert("L")
+        im.save(output_image + ".png")
         """
         Deletes imported images
+        """
         """
         if len(files) == 0:
             for r, d, f in os.walk(directory, topdown=False):  # If exported through CellSens
@@ -245,6 +252,7 @@ def count_section(directory, model, oft):
         else:
             for file in files:
                 os.remove(os.path.join(directory, file))
+        """
     if oft.any():
         if os.path.exists(output_csv):
             true_cells = np.loadtxt(output_csv, delimiter=",").astype(np.int16)
@@ -252,6 +260,11 @@ def count_section(directory, model, oft):
             mask = None
             if os.path.exists(input_mask):
                 mask, _ = generate_border_and_mask(input_mask)
+                if arr.shape != mask.shape:
+                    print("*******")
+                    print("Mask and image have different shape for " % directory)
+                    print("*******")
+                    return
             print("Working on %s" % directory)
             print("Load Time: %.2f" % (time.time() - start_time))
             start_time = time.time()
@@ -294,18 +307,24 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--png", action="store_true", help="Output png file Boutons.png")
     parser.add_argument("-s", "--svg", action="store_true", help="Output svg file Boutons.svg")
     parser.add_argument("-c", "--csv", action="store_true", help="Output csv file Boutons.csv")
+    parser.add_argument("-l", "--color", type=str, help="Color of boutons")
     args = parser.parse_args()
     Image.MAX_IMAGE_PIXELS = None
     model = load_json_model("Boutons")
     oft = OutputFileType()
     oft.svg, oft.png, oft.csv = args.svg, args.png, args.csv
-    if args.directory is not None:
-        count_brain(args.directory, model, oft)
+    global color
+    color = [255, 0, 0]
+    if args.color is not None:
+        color = [int(''.join(c for c in s if c.isdigit())) for s in args.color.split(",")]
+        assert len(color) == 3 or len(color) == 4
+    if args.brain is not None:
+        count_brain(args.brain, model, oft)
     elif args.order is not None:
         dir_name = os.path.dirname(args.order)
         with open(args.order) as f:
             for line in f:
                 line = os.path.join(dir_name, line.strip())
                 count_brain(line, model, oft)
-    elif args.folder is not None:
-        count_section(args.folder, model, oft)
+    elif args.section is not None:
+        count_section(args.section, model, oft)
