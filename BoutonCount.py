@@ -99,8 +99,8 @@ def file_to_array(filepath, average=True):
 
 def detect_local_minima(arr, mask=None):
     scale = 4
-    dilated = scipy.ndimage.morphology.grey_dilation(arr, size=(scale, scale))
-    eroded = scipy.ndimage.morphology.grey_erosion(arr, size=(scale, scale))
+    dilated = scipy.ndimage.grey_dilation(arr, size=(scale, scale))
+    eroded = scipy.ndimage.grey_erosion(arr, size=(scale, scale))
     x1 = arr == eroded
     x2 = arr < dilated - .01
     x = np.logical_and(x1, x2)
@@ -203,7 +203,7 @@ def count_section(directory, model, oft):
         if os.path.exists(image):
             arr = file_to_array(image).astype(np.float32)
             arr = (arr - arr.min()) / (arr.max() - arr.min())
-            arr = (arr * 255).astype(int)
+            arr = (arr * 255).astype(np.uint8)
     else:
         """
         Loads images exported by either CellSens or VS-ASW into memory
@@ -235,7 +235,7 @@ def count_section(directory, model, oft):
         print("Working on %s" % directory)
         assert arr is not None
         arr = (arr - arr.min()) / (arr.max() - arr.min())
-        arr = (arr * 255).astype(int)
+        arr = (arr * 255).astype(np.uint8)
         im = Image.fromarray(arr).convert("L")
         im.save(output_image + ".png")
         """
@@ -265,18 +265,17 @@ def count_section(directory, model, oft):
                     print("Mask and image have different shape for " % directory)
                     print("*******")
                     return
-            print("Working on %s" % directory)
             print("Load Time: %.2f" % (time.time() - start_time))
             start_time = time.time()
             X, COMs = local_minima_generate_points(arr, mask)
             print("Proposal Time: %.2f" % (time.time() - start_time))
             start_time = time.time()
-            print("%s cells proposed" % X.shape[0])
+            print("%s boutons proposed" % X.shape[0])
             output = model.predict(X)
             print("ML Time: %.2f" % (time.time() - start_time))
             start_time = time.time()
             true_cells = COMs[output[:, 0] > 0.80, :]
-        print("%s cells detected" % true_cells.shape[0])
+        print("%s boutons detected" % true_cells.shape[0])
         if oft.svg and not os.path.exists(output_svg):
             svg = CreateSVG(output_svg, arr.shape, output_image)
             for i in range(true_cells.shape[0]):
@@ -300,14 +299,14 @@ def count_brain(brain_directory, model, oft):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="This program uses the pretrained NN to search for cells or boutons")
+    parser = argparse.ArgumentParser(description="This program uses the pretrained NN to search for boutons")
     parser.add_argument("-b", "--brain", type=str, help="Brain level directory")
-    parser.add_argument("-o", "--order", type=str, help="Order file for multiple brains")
+    parser.add_argument("-o", "--order", type=str, help="Order metadata file for multiple brains")
     parser.add_argument("-e", "--section", type=str, help="File for one section from one brain")
     parser.add_argument("-p", "--png", action="store_true", help="Output png file Boutons.png")
     parser.add_argument("-s", "--svg", action="store_true", help="Output svg file Boutons.svg")
     parser.add_argument("-c", "--csv", action="store_true", help="Output csv file Boutons.csv")
-    parser.add_argument("-l", "--color", type=str, help="Color of boutons")
+    parser.add_argument("-l", "--color", type=str, help="Color of boutons, in format RR,GG,BB Ex: '255,0,0'")
     args = parser.parse_args()
     Image.MAX_IMAGE_PIXELS = None
     model = load_json_model("Boutons")
